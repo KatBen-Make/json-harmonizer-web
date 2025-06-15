@@ -1,8 +1,7 @@
-
 /**
  * Recursively merge multiple JSON objects.
  * For object keys: - prefers non-empty string/array/object value if any
- * For arrays: merges arrays, deduplicating objects with preference for non-empty values
+ * For arrays: merges arrays, deduplicating objects with preference for non-empty values, merging items with same identifier (like itemID)
  * For primitive values: keeps first non-empty, otherwise keeps whatever
  */
 
@@ -40,28 +39,56 @@ function mergeObjectsKeepNonEmpty(a: any, b: any) {
   return result;
 }
 
-// Deduplicate array of objects with preference for non-empty values
+// Main: Merge array of objects by ID if present, otherwise deduplicate
 function mergeArrayOfObjects(arrays: any[][]) {
-  // Flatten arrays
   const allItems: any[] = arrays.flat().filter(Boolean);
 
-  // Group by JSON stringified keys/structure for simple deduplication, but combine by overlap keys
-  // This avoids duplicating objects with the same keys except for values
+  // Heuristically detect a suitable identifier key (only support one for now, default to itemID)
+  // You can expand this for more keys in the future
+  const identifierKeys = [
+    "itemID",
+    "id",
+    "uuid",
+    "name", // fallback if structure is poorly specified
+  ];
+  // Find an identifier key used by most items
+  let identifierKey: string | null = null;
+  for (const key of identifierKeys) {
+    if (allItems.some(obj => isObject(obj) && key in obj)) {
+      identifierKey = key;
+      break;
+    }
+  }
 
-  // We'll use the object keys present (except those which are only empty)
-  // But as user example shows, {"some":""} and {"some":"text"} are considered the same for deduplication
-  // and only the one with the non-empty value should stay
+  if (identifierKey) {
+    // Group all objects by identifier
+    const grouped: Record<string, any[]> = {};
+    const others: any[] = [];
+    for (const obj of allItems) {
+      if (isObject(obj) && obj[identifierKey]) {
+        const idVal = obj[identifierKey];
+        if (!grouped[idVal]) grouped[idVal] = [];
+        grouped[idVal].push(obj);
+      } else {
+        others.push(obj); // No ID, can't be grouped
+      }
+    }
 
+    const mergedById = Object.values(grouped).map(groupArr =>
+      groupArr.length === 1 ? groupArr[0] : deepMergeJson(groupArr)
+    );
+    // If any items had no ID, just add them as-is (optionally deduplicate or merge if structures match)
+    return [...mergedById, ...others];
+  }
+
+  // Otherwise: fallback, old logic—deduplicate by keys
   const merged: any[] = [];
-  // We track for each group (based on stringified keys) the merged object with best values
   const keyGroups: Record<string, any> = {};
 
   for (const obj of allItems) {
     if (isObject(obj)) {
       // Only consider keys with non-empty values for identity, default to object keys
-      // If all values are empty, use keys
       const importantKeys = Object.keys(obj).sort();
-      // identityKey for deduplication (based on keys present, not their values)
       const identityKey = JSON.stringify(importantKeys);
       if (!(identityKey in keyGroups)) {
         keyGroups[identityKey] = obj;
@@ -69,11 +96,9 @@ function mergeArrayOfObjects(arrays: any[][]) {
         keyGroups[identityKey] = mergeObjectsKeepNonEmpty(keyGroups[identityKey], obj);
       }
     } else {
-      // non-object array member (primitive)
       merged.push(obj);
     }
   }
-  // Add merged objects back
   merged.push(...Object.values(keyGroups));
   return merged;
 }
@@ -91,7 +116,6 @@ export function deepMergeJson(jsonObjects: any[]): any {
   // Check if any array at this level
   const arrays = jsonObjects.filter(j => Array.isArray(j)) as any[][];
   if (arrays.length > 0) {
-    // If arrays of objects, merge arrays with key-based deduplication and preference for non-empty
     return mergeArrayOfObjects(arrays);
   }
 
