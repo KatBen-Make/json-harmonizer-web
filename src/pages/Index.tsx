@@ -1,12 +1,40 @@
-// Update this page (the content is just a fallback if you fail to update the page)
 
-const Index = () => {
+import React from "react";
+import JsonMergeInput from "@/components/JsonMergeInput";
+import JsonMergeOutput from "@/components/JsonMergeOutput";
+
+const Index: React.FC = () => {
+  const [merged, setMerged] = React.useState({});
+  const [validInputs, setValidInputs] = React.useState<string[]>([]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background flex flex-col items-center py-12 px-6">
+      <main className="w-full max-w-screen-xl flex flex-col gap-8">
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">
+          JSON Combiner Tool
+        </h1>
+        <div className="text-muted-foreground text-base mb-2 md:max-w-2xl">
+          Paste up to 20 JSON objects below. Click "Add json" to add more sources. 
+          The tool will merge the keys recursively, preferring present, non-empty values. 
+          Array fields will take the first non-empty array among all sources. The result ignores value differences, except that empty values are replaced by present values if found elsewhere.
+        </div>
+        <JsonMergeInput onResult={(merged, validInputs) => {
+          setMerged(merged);
+          setValidInputs(validInputs);
+        }} />
+        <JsonMergeOutput merged={merged} show={validInputs.length > 0} />
+        <footer className="mt-8 text-xs text-muted-foreground text-center opacity-60">
+          Built with &lt;3 for fast desktop merging.&nbsp;
+          <a
+            href="https://github.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-primary"
+          >
+            View on GitHub
+          </a>
+        </footer>
+      </main>
     </div>
   );
 };
