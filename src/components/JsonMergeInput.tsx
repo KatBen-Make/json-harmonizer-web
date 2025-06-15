@@ -15,11 +15,6 @@ export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
   const maxInputs = 20;
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    handleMerge();
-    // eslint-disable-next-line
-  }, [inputs]);
-
   function addInput() {
     if (inputs.length >= maxInputs) {
       toast({ title: "Maximum reached", description: "Up to 20 JSON files allowed." });
@@ -36,6 +31,7 @@ export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
 
   function setInput(idx: number, val: string) {
     setInputs(inputs.map((old, i) => (i === idx ? val : old)));
+    setErrors(errors.map((old, i) => (i === idx ? null : old)));
   }
 
   function handleMerge() {
@@ -93,9 +89,14 @@ export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
           </div>
         ))}
       </div>
-      <Button type="button" variant="outline" onClick={addInput} disabled={inputs.length >= maxInputs}>
-        Add json
-      </Button>
+      <div className="flex flex-wrap gap-4 items-center">
+        <Button type="button" variant="outline" onClick={addInput} disabled={inputs.length >= maxInputs}>
+          Add json
+        </Button>
+        <Button type="button" variant="default" onClick={handleMerge}>
+          Merge files
+        </Button>
+      </div>
     </div>
   );
 }

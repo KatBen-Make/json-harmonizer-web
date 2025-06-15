@@ -15,12 +15,12 @@ const Index: React.FC = () => {
         </h1>
         <div className="text-muted-foreground text-base mb-2 md:max-w-2xl">
           Paste up to 20 JSON objects below. Click "Add json" to add more sources. 
-          The tool will merge the keys recursively, preferring present, non-empty values. 
+          Click "Merge files" to see the merged output. The tool will merge the keys recursively, preferring present, non-empty values. 
           Array fields will take the first non-empty array among all sources. The result ignores value differences, except that empty values are replaced by present values if found elsewhere.
         </div>
-        <JsonMergeInput onResult={(merged, validInputs) => {
-          setMerged(merged);
-          setValidInputs(validInputs);
+        <JsonMergeInput onResult={(mergedResult, validInputsArr) => {
+          setMerged(mergedResult);
+          setValidInputs(validInputsArr);
         }} />
         <JsonMergeOutput merged={merged} show={validInputs.length > 0} />
         <footer className="mt-8 text-xs text-muted-foreground text-center opacity-60">
