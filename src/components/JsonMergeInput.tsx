@@ -12,12 +12,12 @@ type JsonMergeInputProps = {
 export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
   const [inputs, setInputs] = React.useState<string[]>(["", ""]);
   const [errors, setErrors] = React.useState<(string | null)[]>([null, null]);
-  const maxInputs = 20;
+  const maxInputs = 35; // raised from 20 to 35
   const { toast } = useToast();
 
   function addInput() {
     if (inputs.length >= maxInputs) {
-      toast({ title: "Maximum reached", description: "Up to 20 JSON files allowed." });
+      toast({ title: "Maximum reached", description: "Up to 35 JSON files allowed." });
       return;
     }
     setInputs((arr) => [...arr, ""]);
@@ -100,3 +100,4 @@ export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
     </div>
   );
 }
+
