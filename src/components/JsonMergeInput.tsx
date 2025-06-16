@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { deepMergeJson } from "./JsonMergeLogic";
+import { findCommonKeys } from "./JsonCommonKeysLogic";
 
 type JsonMergeInputProps = {
   onResult: (merged: any, validInputs: string[]) => void;
+  onCommonKeys?: (commonKeys: string[]) => void;
 };
 
-export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
+export default function JsonMergeInput({ onResult, onCommonKeys }: JsonMergeInputProps) {
   const [inputs, setInputs] = React.useState<string[]>(["", ""]);
   const [errors, setErrors] = React.useState<(string | null)[]>([null, null]);
   const maxInputs = 35; // raised from 20 to 35
@@ -34,13 +36,14 @@ export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
     setErrors(errors.map((old, i) => (i === idx ? null : old)));
   }
 
-  function handleMerge() {
+  function getValidObjects() {
     const validObjects: any[] = [];
     const validInputs: string[] = [];
     const newErrors = inputs.map((input) => {
       if (!input.trim()) return null;
       try {
-        validObjects.push(JSON.parse(input));
+        const parsed = JSON.parse(input);
+        validObjects.push(parsed);
         validInputs.push(input);
         return null;
       } catch (e: any) {
@@ -48,11 +51,37 @@ export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
       }
     });
     setErrors(newErrors);
-    if (validObjects.length > 0 && newErrors.every(e => e === null)) {
+    return { validObjects, validInputs, hasErrors: !newErrors.every(e => e === null) };
+  }
+
+  function handleMerge() {
+    const { validObjects, validInputs } = getValidObjects();
+    if (validObjects.length > 0) {
       const merged = deepMergeJson(validObjects);
       onResult(merged, validInputs);
     } else {
       onResult({}, []);
+    }
+  }
+
+  function handleFindCommonKeys() {
+    const { validObjects, hasErrors } = getValidObjects();
+    if (validObjects.length < 2) {
+      toast({ title: "Need at least 2 valid JSONs", description: "Please provide at least 2 valid JSON objects to find common keys." });
+      return;
+    }
+    if (hasErrors) {
+      toast({ title: "Fix JSON errors first", description: "Please fix all JSON syntax errors before finding common keys." });
+      return;
+    }
+    
+    const commonKeys = findCommonKeys(validObjects);
+    onCommonKeys?.(commonKeys);
+    
+    if (commonKeys.length === 0) {
+      toast({ title: "No common keys found", description: "No keys are present in all JSON objects." });
+    } else {
+      toast({ title: "Common keys found", description: `Found ${commonKeys.length} common keys.` });
     }
   }
 
@@ -96,8 +125,10 @@ export default function JsonMergeInput({ onResult }: JsonMergeInputProps) {
         <Button type="button" variant="default" onClick={handleMerge}>
           Merge files
         </Button>
+        <Button type="button" variant="secondary" onClick={handleFindCommonKeys}>
+          Find common Keys
+        </Button>
       </div>
     </div>
   );
 }
-
