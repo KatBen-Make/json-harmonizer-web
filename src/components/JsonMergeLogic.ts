@@ -3,7 +3,7 @@
  * Recursively merge multiple JSON objects.
  * - For arrays of objects: deeply merge all items into one object, regardless of identifier keys.
  * - For object keys: prefers non-empty string/array/object value if any.
- * - For arrays of non-objects: keeps first non-empty, otherwise keeps whatever.
+ * - For arrays of non-objects: combines all unique items from all arrays.
  * - For primitive values: keeps first non-empty, otherwise keeps whatever.
  */
 
@@ -51,6 +51,31 @@ function mergeArrayToSingleObject(arrays: any[][]) {
   return [merged]; // Single deeply merged object in an array
 }
 
+// Combine all arrays, preserving structure and merging objects within
+function combineArrays(arrays: any[][]) {
+  // If all arrays contain only objects, merge them
+  const flattened = arrays.flat();
+  const allObjects = flattened.every(item => isObject(item));
+  
+  if (allObjects && flattened.length > 0) {
+    return mergeArrayToSingleObject(arrays);
+  }
+  
+  // For mixed content or primitive arrays, combine all non-empty arrays
+  const nonEmptyArrays = arrays.filter(arr => arr.length > 0);
+  if (nonEmptyArrays.length === 0) {
+    return []; // All arrays were empty
+  }
+  
+  // If only one non-empty array, return it
+  if (nonEmptyArrays.length === 1) {
+    return nonEmptyArrays[0];
+  }
+  
+  // Combine all items from all arrays
+  return nonEmptyArrays.flat();
+}
+
 export function deepMergeJson(jsonObjects: any[]): any {
   if (!jsonObjects.length) return {};
 
@@ -61,20 +86,10 @@ export function deepMergeJson(jsonObjects: any[]): any {
     return nonEmpty !== undefined ? nonEmpty : jsonObjects[0];
   }
 
-  // If arrays at this level, handle with new merging logic
+  // If arrays at this level, handle with improved merging logic
   const arrays = jsonObjects.filter(j => Array.isArray(j)) as any[][];
   if (arrays.length > 0) {
-    // Check if all items in all arrays are objects
-    const flattened = arrays.flat();
-    const allObjects = flattened.every(item => isObject(item));
-    if (allObjects) {
-      // Deep merge all array items into a single object inside an array
-      return mergeArrayToSingleObject(arrays);
-    } else {
-      // Fallback/legacy merge: return first non-empty array
-      const nonEmpty = arrays.find(arr => arr.length > 0);
-      return nonEmpty || [];
-    }
+    return combineArrays(arrays);
   }
 
   // Merge objects
@@ -92,4 +107,3 @@ export function deepMergeJson(jsonObjects: any[]): any {
   }
   return result;
 }
-
