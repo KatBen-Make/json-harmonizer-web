@@ -1,4 +1,3 @@
-
 /**
  * Recursively merge multiple JSON objects.
  * - For arrays of objects: deeply merge all items into one object, regardless of identifier keys.
@@ -32,6 +31,19 @@ function mergeObjectsKeepNonEmpty(a: any, b: any) {
       result[key] = bv;
     } else if (isObject(av) && isObject(bv)) {
       result[key] = mergeObjectsKeepNonEmpty(av, bv);
+    } else if (Array.isArray(av) && Array.isArray(bv)) {
+      // Special handling for arrays: prefer non-empty array, or merge if both have content
+      if (isEmpty(av) && !isEmpty(bv)) {
+        result[key] = bv;
+      } else if (!isEmpty(av) && isEmpty(bv)) {
+        result[key] = av;
+      } else if (!isEmpty(av) && !isEmpty(bv)) {
+        // Both arrays have content, combine them
+        result[key] = combineArrays([av, bv]);
+      } else {
+        // Both empty, keep first
+        result[key] = av;
+      }
     } else if (!isEmpty(bv)) {
       result[key] = bv;
     } else {
